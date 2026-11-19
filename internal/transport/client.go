@@ -58,6 +58,23 @@ func (c *Client) DoRaw(ctx context.Context, method, path string) ([]byte, error)
 	return readResponse(resp)
 }
 
+// DoStream sends a request without a body and returns the response with its
+// body unread, for streaming large downloads. The caller must close the
+// body. A non-2xx response is read, closed and returned as an *APIError.
+func (c *Client) DoStream(ctx context.Context, method, path string) (*http.Response, error) {
+	resp, err := c.execute(ctx, method, path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		_, err := readResponse(resp)
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 func (c *Client) execute(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	req, err := c.newRequest(ctx, method, path, body)
 	if err != nil {

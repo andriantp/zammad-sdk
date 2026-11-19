@@ -318,7 +318,8 @@ fmt.Printf("Article created: %d\n", article.ID)
 
 #### Download Attachment
 
-Download an article attachment as binary data.
+Download an article attachment into memory. Suitable for small files; for
+large files, or to get the original filename, use `OpenAttachment` below.
 
 ```go
 data, err := client.Articles.DownloadAttachment(
@@ -336,6 +337,37 @@ if err != nil {
     log.Fatal(err)
 }
 ```
+
+#### Open Attachment (streaming)
+
+Stream an attachment without loading it into memory, along with its
+original filename, content type and size. Always close `Body`.
+
+```go
+file, err := client.Articles.OpenAttachment(ctx, 123, 456, 789)
+if err != nil {
+    log.Fatal(err)
+}
+defer file.Body.Close()
+
+out, err := os.Create(file.Filename) // base name only, never a path
+if err != nil {
+    log.Fatal(err)
+}
+defer out.Close()
+
+if _, err := io.Copy(out, file.Body); err != nil {
+    log.Fatal(err)
+}
+
+fmt.Println(file.Filename, file.ContentType, file.Size)
+```
+
+`Filename` is reduced to a base name, so a server-sent name such as
+`../../.bashrc` becomes `.bashrc`; it is empty when the server sends no
+usable name. The client timeout (`WithTimeout`, 30s by default) also covers
+reading `Body`, so raise it or use a context deadline for large files on
+slow connections.
 
 ### Groups
 

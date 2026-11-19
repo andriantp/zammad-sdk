@@ -1,5 +1,7 @@
 package models
 
+import "io"
+
 type (
 	AttachmentInput struct {
 		Filename string `json:"filename"`
@@ -15,3 +17,19 @@ type (
 		Preferences map[string]any `json:"preferences,omitempty"`
 	}
 )
+
+// AttachmentFile is a downloaded attachment whose content is streamed.
+// The caller must close Body.
+type AttachmentFile struct {
+	Body io.ReadCloser
+
+	// Filename is the base name from the Content-Disposition header, or ""
+	// if the server sent none or an unsafe one. It never contains a path.
+	Filename string
+
+	// ContentType is the Content-Type header, e.g. "image/png".
+	ContentType string
+
+	// Size is the Content-Length in bytes, or -1 if unknown.
+	Size int64
+}
