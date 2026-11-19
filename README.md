@@ -403,6 +403,10 @@ for page := 1; ; page++ {
 Available on `Users`, `Groups`, `Organizations` (`ListAll`/`ListPage`) and
 `Tickets` (`SearchTicketsAll`/`SearchTicketsPage`).
 
+`List` and `SearchTickets` remain as deprecated aliases of `ListAll` and
+`SearchTicketsAll`, so existing code keeps compiling and now returns
+complete results.
+
 ## Examples
 
 Runnable examples are available in the `examples/` directory.

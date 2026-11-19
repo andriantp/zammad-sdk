@@ -38,6 +38,13 @@ func (s *Service) ListAll(ctx context.Context) (*models.GroupList, error) {
 	}, nil
 }
 
+// List retrieves every group.
+//
+// Deprecated: Use ListAll, or ListPage to fetch a single page.
+func (s *Service) List(ctx context.Context) (*models.GroupList, error) {
+	return s.ListAll(ctx)
+}
+
 // ListPage retrieves a single page of groups.
 // Total is the number of groups in this page, not across all pages.
 func (s *Service) ListPage(ctx context.Context, opts models.ListOptions) (*models.GroupList, error) {

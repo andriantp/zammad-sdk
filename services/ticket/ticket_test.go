@@ -643,3 +643,28 @@ func TestService_SearchTicketsPage_InvalidInput(t *testing.T) {
 		t.Error("expected error for negative page")
 	}
 }
+
+// SearchTickets is a deprecated alias of SearchTicketsAll and must follow every page.
+func TestService_SearchTicketsDeprecatedAlias(t *testing.T) {
+	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Query().Get("page") {
+		case "1":
+			_, _ = w.Write([]byte(`[{"id": 1}]`))
+		case "2":
+			_, _ = w.Write([]byte(`[{"id": 2}]`))
+		default:
+			_, _ = w.Write([]byte(`[]`))
+		}
+	}))
+
+	result, err := service.SearchTickets(context.Background(), "title:login")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Total != 2 {
+		t.Errorf("expected total 2 across pages, got %d", result.Total)
+	}
+}

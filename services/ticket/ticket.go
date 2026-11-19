@@ -123,6 +123,13 @@ func (s *Service) SearchTicketsAll(ctx context.Context, query string) (*models.T
 	}, nil
 }
 
+// SearchTickets retrieves every ticket matching query.
+//
+// Deprecated: Use SearchTicketsAll, or SearchTicketsPage to fetch a single page.
+func (s *Service) SearchTickets(ctx context.Context, query string) (*models.TicketList, error) {
+	return s.SearchTicketsAll(ctx, query)
+}
+
 // SearchTicketsPage retrieves a single page of tickets matching query.
 // Total is the number of tickets in this page, not across all pages.
 func (s *Service) SearchTicketsPage(ctx context.Context, query string, opts models.ListOptions) (*models.TicketList, error) {

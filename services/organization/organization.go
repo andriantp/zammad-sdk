@@ -38,6 +38,13 @@ func (s *Service) ListAll(ctx context.Context) (*models.OrganizationList, error)
 	}, nil
 }
 
+// List retrieves every organization.
+//
+// Deprecated: Use ListAll, or ListPage to fetch a single page.
+func (s *Service) List(ctx context.Context) (*models.OrganizationList, error) {
+	return s.ListAll(ctx)
+}
+
 // ListPage retrieves a single page of organizations.
 // Total is the number of organizations in this page, not across all pages.
 func (s *Service) ListPage(ctx context.Context, opts models.ListOptions) (*models.OrganizationList, error) {

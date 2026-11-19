@@ -38,6 +38,13 @@ func (s *Service) ListAll(ctx context.Context) (*models.UserList, error) {
 	}, nil
 }
 
+// List retrieves every user.
+//
+// Deprecated: Use ListAll, or ListPage to fetch a single page.
+func (s *Service) List(ctx context.Context) (*models.UserList, error) {
+	return s.ListAll(ctx)
+}
+
 // ListPage retrieves a single page of users.
 // Total is the number of users in this page, not across all pages.
 func (s *Service) ListPage(ctx context.Context, opts models.ListOptions) (*models.UserList, error) {

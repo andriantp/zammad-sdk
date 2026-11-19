@@ -214,3 +214,28 @@ func TestUserService_ListAll_Paginates(t *testing.T) {
 		t.Errorf("unexpected result %+v", result)
 	}
 }
+
+// List is a deprecated alias of ListAll and must follow every page.
+func TestUserService_ListDeprecatedAlias(t *testing.T) {
+	client := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Query().Get("page") {
+		case "1":
+			_, _ = w.Write([]byte(`[{"id": 1}]`))
+		case "2":
+			_, _ = w.Write([]byte(`[{"id": 2}]`))
+		default:
+			_, _ = w.Write([]byte(`[]`))
+		}
+	}))
+
+	result, err := client.List(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Total != 2 {
+		t.Errorf("expected total 2 across pages, got %d", result.Total)
+	}
+}
