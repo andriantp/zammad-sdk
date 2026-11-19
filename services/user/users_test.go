@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/andriantp/zammad-sdk/internal/transport"
+	"github.com/andriantp/zammad-sdk/models"
 )
 
 func newTestService(t *testing.T, handler http.Handler) *Service {
@@ -60,7 +61,7 @@ func TestUserService_List(t *testing.T) {
 		]`))
 	}))
 
-	result, err := client.List(context.Background())
+	result, err := client.ListAll(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -151,5 +152,65 @@ func TestUserService_Get_InvalidID(t *testing.T) {
 	_, err := client.Get(context.Background(), 0)
 	if err == nil {
 		t.Fatal("expected error for invalid user ID")
+	}
+}
+
+func TestUserService_ListPage(t *testing.T) {
+	var gotQuery string
+
+	client := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/users" {
+			t.Errorf("expected path /api/v1/users, got %s", r.URL.Path)
+		}
+
+		gotQuery = r.URL.RawQuery
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[{"id": 3}, {"id": 4}]`))
+	}))
+
+	result, err := client.ListPage(context.Background(), models.ListOptions{Page: 2, PerPage: 2})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if gotQuery != "page=2&per_page=2" {
+		t.Errorf("unexpected query %q", gotQuery)
+	}
+
+	if result.Total != 2 || result.Users[0].ID != 3 {
+		t.Errorf("unexpected result %+v", result)
+	}
+
+	if _, err := client.ListPage(context.Background(), models.ListOptions{}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if gotQuery != "page=1&per_page=100" {
+		t.Errorf("expected default query, got %q", gotQuery)
+	}
+}
+
+func TestUserService_ListAll_Paginates(t *testing.T) {
+	client := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Query().Get("page") {
+		case "1":
+			_, _ = w.Write([]byte(`[{"id": 1}, {"id": 2}]`))
+		case "2":
+			_, _ = w.Write([]byte(`[{"id": 3}]`))
+		default:
+			_, _ = w.Write([]byte(`[]`))
+		}
+	}))
+
+	result, err := client.ListAll(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Total != 3 || result.Users[2].ID != 3 {
+		t.Errorf("unexpected result %+v", result)
 	}
 }

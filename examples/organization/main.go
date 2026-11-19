@@ -21,7 +21,7 @@ func main() {
 	ctx := context.Background()
 
 	// List organizations
-	organizations, err := client.Organizations.List(ctx)
+	organizations, err := client.Organizations.ListAll(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}

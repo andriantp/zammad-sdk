@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/andriantp/zammad-sdk/models"
@@ -305,7 +307,7 @@ func TestService_GetTicketByNumber_ExactMatch(t *testing.T) {
 	}
 }
 
-func TestService_SearchTickets(t *testing.T) {
+func TestService_SearchTicketsAll(t *testing.T) {
 	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Fatalf("expected method GET, got %s", r.Method)
@@ -344,7 +346,7 @@ func TestService_SearchTickets(t *testing.T) {
         ]`))
 	}))
 
-	result, err := service.SearchTickets(context.Background(), "title:login")
+	result, err := service.SearchTicketsAll(context.Background(), "title:login")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -370,12 +372,12 @@ func TestService_SearchTickets(t *testing.T) {
 	}
 }
 
-func TestService_SearchTickets_EmptyQuery(t *testing.T) {
+func TestService_SearchTicketsAll_EmptyQuery(t *testing.T) {
 	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("expected no HTTP request")
 	}))
 
-	result, err := service.SearchTickets(context.Background(), "")
+	result, err := service.SearchTicketsAll(context.Background(), "")
 	if err == nil {
 		t.Fatal("expected error for empty query")
 	}
@@ -385,12 +387,12 @@ func TestService_SearchTickets_EmptyQuery(t *testing.T) {
 	}
 }
 
-func TestService_SearchTickets_WhitespaceQuery(t *testing.T) {
+func TestService_SearchTicketsAll_WhitespaceQuery(t *testing.T) {
 	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("expected no HTTP request")
 	}))
 
-	result, err := service.SearchTickets(context.Background(), "   ")
+	result, err := service.SearchTicketsAll(context.Background(), "   ")
 	if err == nil {
 		t.Fatal("expected error for whitespace query")
 	}
@@ -537,5 +539,83 @@ func TestService_DeleteTicket_APIError(t *testing.T) {
 	err := service.DeleteTicket(context.Background(), 123)
 	if err == nil {
 		t.Fatal("expected API error")
+	}
+}
+
+func TestService_SearchTicketsAll_Paginates(t *testing.T) {
+	const total = 103
+	var pages []string
+
+	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		pages = append(pages, q.Get("page"))
+
+		if q.Get("query") != "state:open" {
+			t.Errorf("expected query state:open, got %q", q.Get("query"))
+		}
+
+		page, _ := strconv.Atoi(q.Get("page"))
+		perPage, _ := strconv.Atoi(q.Get("per_page"))
+
+		tickets := []map[string]any{}
+		for id := (page-1)*perPage + 1; id <= total && id <= page*perPage; id++ {
+			tickets = append(tickets, map[string]any{"id": id})
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(tickets)
+	}))
+
+	result, err := service.SearchTicketsAll(context.Background(), "state:open")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Total != total || len(result.Tickets) != total {
+		t.Fatalf("expected %d tickets, got total=%d len=%d", total, result.Total, len(result.Tickets))
+	}
+
+	if strings.Join(pages, ",") != "1,2,3" {
+		t.Errorf("expected pages 1,2,3, got %v", pages)
+	}
+}
+
+func TestService_SearchTicketsPage(t *testing.T) {
+	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+
+		if r.URL.Path != "/api/v1/tickets/search" {
+			t.Errorf("unexpected path %s", r.URL.Path)
+		}
+
+		if q.Get("query") != "title:login" || q.Get("page") != "2" || q.Get("per_page") != "10" {
+			t.Errorf("unexpected query %s", r.URL.RawQuery)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[{"id": 11}, {"id": 12}]`))
+	}))
+
+	result, err := service.SearchTicketsPage(context.Background(), "title:login", models.ListOptions{Page: 2, PerPage: 10})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Total != 2 || result.Tickets[0].ID != 11 {
+		t.Errorf("unexpected result %+v", result)
+	}
+}
+
+func TestService_SearchTicketsPage_InvalidInput(t *testing.T) {
+	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("expected no HTTP request")
+	}))
+
+	if _, err := service.SearchTicketsPage(context.Background(), " ", models.ListOptions{}); err == nil {
+		t.Error("expected error for empty query")
+	}
+
+	if _, err := service.SearchTicketsPage(context.Background(), "x", models.ListOptions{Page: -1}); err == nil {
+		t.Error("expected error for negative page")
 	}
 }

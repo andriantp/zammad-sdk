@@ -117,7 +117,7 @@ fmt.Println(ticket.Title)
 Search tickets using the Zammad search query syntax.
 
 ```go
-result, err := client.Tickets.SearchTickets(ctx, "title:login")
+result, err := client.Tickets.SearchTicketsAll(ctx, "title:login")
 if err != nil {
     log.Fatal(err)
 }
@@ -127,6 +127,15 @@ fmt.Printf("Total tickets: %d\n", result.Total)
 for _, ticket := range result.Tickets {
     fmt.Printf("%s: %s\n", ticket.Number, ticket.Title)
 }
+```
+
+Retrieve a single page instead:
+
+```go
+result, err := client.Tickets.SearchTicketsPage(ctx, "title:login", models.ListOptions{
+    Page:    2,
+    PerPage: 50,
+})
 ```
 
 #### Update Ticket
@@ -291,7 +300,7 @@ if err != nil {
 Retrieve all groups.
 
 ```go
-result, err := client.Groups.List(ctx)
+result, err := client.Groups.ListAll(ctx)
 if err != nil {
     log.Fatal(err)
 }
@@ -317,7 +326,7 @@ fmt.Println(group.Name)
 Retrieve all organizations.
 
 ```go
-result, err := client.Organizations.List(ctx)
+result, err := client.Organizations.ListAll(ctx)
 if err != nil {
     log.Fatal(err)
 }
@@ -343,7 +352,7 @@ fmt.Println(organization.Name)
 Retrieve all users.
 
 ```go
-result, err := client.Users.List(ctx)
+result, err := client.Users.ListAll(ctx)
 if err != nil {
     log.Fatal(err)
 }
@@ -363,6 +372,36 @@ if err != nil {
 
 fmt.Println(user.Email)
 ```
+
+## Pagination
+
+Zammad paginates list and search endpoints (search returns 50 results by
+default) and does not report a total count. Each paginated resource therefore
+offers two methods:
+
+| Method | Behavior |
+|---|---|
+| `ListAll(ctx)` / `SearchTicketsAll(ctx, query)` | Requests pages of `models.DefaultPerPage` (100) until an empty page is returned. `Total` is the number of records retrieved. Duplicates caused by records shifting between pages are removed by ID. |
+| `ListPage(ctx, opts)` / `SearchTicketsPage(ctx, query, opts)` | Requests one page. Zero values in `models.ListOptions` default to page 1 and 100 per page. `Total` is the number of records **in that page**. |
+
+`ListAll` issues one request per page plus a final empty one, so on large
+instances prefer `ListPage` to control how much is fetched.
+
+```go
+for page := 1; ; page++ {
+    result, err := client.Users.ListPage(ctx, models.ListOptions{Page: page})
+    if err != nil {
+        log.Fatal(err)
+    }
+    if result.Total == 0 {
+        break
+    }
+    // process result.Users
+}
+```
+
+Available on `Users`, `Groups`, `Organizations` (`ListAll`/`ListPage`) and
+`Tickets` (`SearchTicketsAll`/`SearchTicketsPage`).
 
 ## Examples
 

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/andriantp/zammad-sdk/internal/pagination"
 	"github.com/andriantp/zammad-sdk/models"
 )
 
@@ -93,16 +94,23 @@ func (s *Service) GetTicketByNumber(ctx context.Context, number string) (*models
 	return nil, fmt.Errorf("zammad: ticket not found: %s", number)
 }
 
-func (s *Service) SearchTickets(ctx context.Context, query string) (*models.TicketList, error) {
+// SearchTicketsAll retrieves every ticket matching query (Zammad search
+// syntax) by requesting pages until none remain. Total is the number of
+// tickets retrieved.
+func (s *Service) SearchTicketsAll(ctx context.Context, query string) (*models.TicketList, error) {
 	query = strings.TrimSpace(query)
 	if query == "" {
 		return nil, fmt.Errorf("zammad: search query is required")
 	}
 
-	path := "/tickets/search?query=" + url.QueryEscape(query)
-
-	var tickets []models.Ticket
-	if err := s.transport.Do(ctx, http.MethodGet, path, nil, &tickets); err != nil {
+	tickets, err := pagination.All(
+		ctx,
+		func(ctx context.Context, opts models.ListOptions) ([]models.Ticket, error) {
+			return s.searchPage(ctx, query, opts)
+		},
+		func(t models.Ticket) int { return t.ID },
+	)
+	if err != nil {
 		return nil, err
 	}
 
@@ -110,6 +118,41 @@ func (s *Service) SearchTickets(ctx context.Context, query string) (*models.Tick
 		Total:   len(tickets),
 		Tickets: tickets,
 	}, nil
+}
+
+// SearchTicketsPage retrieves a single page of tickets matching query.
+// Total is the number of tickets in this page, not across all pages.
+func (s *Service) SearchTicketsPage(ctx context.Context, query string, opts models.ListOptions) (*models.TicketList, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return nil, fmt.Errorf("zammad: search query is required")
+	}
+
+	opts, err := pagination.Normalize(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	tickets, err := s.searchPage(ctx, query, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.TicketList{
+		Total:   len(tickets),
+		Tickets: tickets,
+	}, nil
+}
+
+func (s *Service) searchPage(ctx context.Context, query string, opts models.ListOptions) ([]models.Ticket, error) {
+	path := pagination.Path("/tickets/search", opts, url.Values{"query": {query}})
+
+	var tickets []models.Ticket
+	if err := s.transport.Do(ctx, http.MethodGet, path, nil, &tickets); err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
 }
 
 func (s *Service) UpdateTicket(ctx context.Context, ticketID int, payload map[string]any) error {

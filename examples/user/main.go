@@ -21,7 +21,7 @@ func main() {
 	ctx := context.Background()
 
 	// List users
-	users, err := client.Users.List(ctx)
+	users, err := client.Users.ListAll(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}

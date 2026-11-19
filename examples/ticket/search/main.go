@@ -36,7 +36,7 @@ func main() {
 		log.Fatal("at least one search filter is required")
 	}
 
-	tickets, err := client.Tickets.SearchTickets(context.Background(), query)
+	tickets, err := client.Tickets.SearchTicketsAll(context.Background(), query)
 	if err != nil {
 		log.Fatal(err)
 	}

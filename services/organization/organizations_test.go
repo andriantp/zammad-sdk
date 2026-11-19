@@ -56,7 +56,7 @@ func TestOrganizationList(t *testing.T) {
 		},
 	))
 
-	organizations, err := client.List(context.Background())
+	organizations, err := client.ListAll(context.Background())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

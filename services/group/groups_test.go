@@ -52,7 +52,7 @@ func TestGroupService_List(t *testing.T) {
 		]`))
 	}))
 
-	result, err := client.List(context.Background())
+	result, err := client.ListAll(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

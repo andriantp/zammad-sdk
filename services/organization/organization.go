@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/andriantp/zammad-sdk/internal/pagination"
 	"github.com/andriantp/zammad-sdk/models"
 )
 
@@ -23,16 +24,10 @@ func New(transport Transport) *Service {
 	}
 }
 
-func (s *Service) List(ctx context.Context) (*models.OrganizationList, error) {
-	var organizations []models.Organization
-
-	err := s.transport.Do(
-		ctx,
-		http.MethodGet,
-		"/organizations",
-		nil,
-		&organizations,
-	)
+// ListAll retrieves every organization by requesting pages until none remain.
+// Total is the number of organizations retrieved.
+func (s *Service) ListAll(ctx context.Context) (*models.OrganizationList, error) {
+	organizations, err := pagination.All(ctx, s.fetchPage, func(item models.Organization) int { return item.ID })
 	if err != nil {
 		return nil, err
 	}
@@ -41,6 +36,42 @@ func (s *Service) List(ctx context.Context) (*models.OrganizationList, error) {
 		Total:         len(organizations),
 		Organizations: organizations,
 	}, nil
+}
+
+// ListPage retrieves a single page of organizations.
+// Total is the number of organizations in this page, not across all pages.
+func (s *Service) ListPage(ctx context.Context, opts models.ListOptions) (*models.OrganizationList, error) {
+	opts, err := pagination.Normalize(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	organizations, err := s.fetchPage(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.OrganizationList{
+		Total:         len(organizations),
+		Organizations: organizations,
+	}, nil
+}
+
+func (s *Service) fetchPage(ctx context.Context, opts models.ListOptions) ([]models.Organization, error) {
+	var organizations []models.Organization
+
+	err := s.transport.Do(
+		ctx,
+		http.MethodGet,
+		pagination.Path("/organizations", opts, nil),
+		nil,
+		&organizations,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return organizations, nil
 }
 
 func (s *Service) Get(ctx context.Context, id int) (*models.Organization, error) {

@@ -21,7 +21,7 @@ func main() {
 	ctx := context.Background()
 
 	// List groups
-	groups, err := client.Groups.List(ctx)
+	groups, err := client.Groups.ListAll(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
