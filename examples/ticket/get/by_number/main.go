@@ -40,4 +40,5 @@ func main() {
 	fmt.Printf("Group ID: %d\n", ticket.GroupID)
 	fmt.Printf("Priority ID: %d\n", ticket.PriorityID)
 	fmt.Printf("State ID: %d\n", ticket.StateID)
+	fmt.Printf("Tag: %s\n", ticket.Tags)
 }
