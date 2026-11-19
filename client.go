@@ -12,10 +12,6 @@ import (
 	"github.com/andriantp/zammad-sdk/services/user"
 )
 
-type (
-	AttachmentService struct{ client *Client }
-)
-
 type Client struct {
 	config    *config
 	transport *transport.Client
@@ -24,9 +20,8 @@ type Client struct {
 	Groups        *group.Service
 	Users         *user.Service
 
-	Tickets     *ticket.Service
-	Articles    *article.Service
-	Attachments *AttachmentService
+	Tickets  *ticket.Service
+	Articles *article.Service
 }
 
 func NewClient(opts ...Option) (*Client, error) {
@@ -60,7 +55,6 @@ func NewClient(opts ...Option) (*Client, error) {
 
 	client.Tickets = ticket.New(client.transport)
 	client.Articles = article.New(client.transport)
-	client.Attachments = &AttachmentService{client: client}
 
 	return client, nil
 }

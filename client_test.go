@@ -164,10 +164,6 @@ func TestNewClientInitializesServices(t *testing.T) {
 		t.Error("expected Articles service to be initialized")
 	}
 
-	if client.Attachments == nil {
-		t.Error("expected Attachments service to be initialized")
-	}
-
 	if client.Users == nil {
 		t.Error("expected Users service to be initialized")
 	}
