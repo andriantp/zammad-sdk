@@ -704,3 +704,65 @@ func TestService_SearchTicketsDeprecatedAlias(t *testing.T) {
 		t.Errorf("expected total 2 across pages, got %d", result.Total)
 	}
 }
+
+func TestService_CountTickets(t *testing.T) {
+	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+
+		if r.URL.Path != "/api/v1/tickets/search" {
+			t.Errorf("unexpected path %s", r.URL.Path)
+		}
+
+		if q.Get("query") != "state.name:open" || q.Get("full") != "true" ||
+			q.Get("per_page") != "1" || q.Get("page") != "1" {
+			t.Errorf("unexpected query %s", r.URL.RawQuery)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"record_ids": [58], "assets": {}, "total_count": 53}`))
+	}))
+
+	count, err := service.CountTickets(context.Background(), "  state.name:open ")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if count != 53 {
+		t.Errorf("expected 53, got %d", count)
+	}
+}
+
+func TestService_CountTickets_Zero(t *testing.T) {
+	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"record_ids": [], "assets": {}, "total_count": 0}`))
+	}))
+
+	count, err := service.CountTickets(context.Background(), "nomatch")
+	if err != nil || count != 0 {
+		t.Errorf("expected 0 without error, got %d (%v)", count, err)
+	}
+}
+
+// A response without total_count (e.g. a Zammad version that ignores
+// full=true) must be an error, not a silent count of 0.
+func TestService_CountTickets_MissingTotal(t *testing.T) {
+	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"record_ids": [], "assets": {}}`))
+	}))
+
+	if _, err := service.CountTickets(context.Background(), "x"); err == nil {
+		t.Error("expected error when total_count is missing")
+	}
+}
+
+func TestService_CountTickets_EmptyQuery(t *testing.T) {
+	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("expected no HTTP request")
+	}))
+
+	if _, err := service.CountTickets(context.Background(), "  "); err == nil {
+		t.Error("expected error for empty query")
+	}
+}

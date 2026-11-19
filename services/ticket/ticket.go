@@ -154,6 +154,36 @@ func (s *Service) SearchTicketsPage(ctx context.Context, query string, opts mode
 	}, nil
 }
 
+// CountTickets returns the number of tickets matching query (Zammad search
+// syntax) using a single request, without retrieving the tickets.
+func (s *Service) CountTickets(ctx context.Context, query string) (int, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return 0, fmt.Errorf("zammad: search query is required")
+	}
+
+	// full=true makes Zammad report total_count; per_page=1 keeps the
+	// response small since only the count is needed.
+	path := pagination.Path("/tickets/search", models.ListOptions{Page: 1, PerPage: 1}, url.Values{
+		"query": {query},
+		"full":  {"true"},
+	})
+
+	var result struct {
+		TotalCount *int `json:"total_count"`
+	}
+
+	if err := s.transport.Do(ctx, http.MethodGet, path, nil, &result); err != nil {
+		return 0, err
+	}
+
+	if result.TotalCount == nil {
+		return 0, fmt.Errorf("zammad: search response has no total_count")
+	}
+
+	return *result.TotalCount, nil
+}
+
 func (s *Service) searchPage(ctx context.Context, query string, opts models.ListOptions) ([]models.Ticket, error) {
 	path := pagination.Path("/tickets/search", opts, url.Values{
 		"query":  {query},

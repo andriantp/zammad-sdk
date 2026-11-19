@@ -138,6 +138,33 @@ result, err := client.Tickets.SearchTicketsPage(ctx, "title:login", models.ListO
 })
 ```
 
+#### Count Tickets
+
+Count tickets matching a search query with a single request, without
+retrieving them.
+
+```go
+count, err := client.Tickets.CountTickets(ctx, "state.name:open")
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Printf("Tickets in state \"open\": %d\n", count)
+```
+
+`state.name:open` matches only tickets whose state is exactly `open`; tickets
+in `new` or `pending reminder` are not counted. Combine conditions with
+`AND`, `OR` and `NOT`, for example:
+
+| Query | Matches |
+|---|---|
+| `state.name:open` | State is exactly `open` |
+| `NOT state.name:closed` | Every ticket that is not closed |
+| `tags:bug AND state.name:new` | Tagged `bug` and in state `new` |
+| `state.name:"pending reminder"` | Quote values that contain spaces |
+
+The same query syntax works with `SearchTicketsAll` and `SearchTicketsPage`.
+
 #### Update Ticket
 
 Update ticket attributes using a flexible payload.
@@ -437,6 +464,7 @@ examples/
 ├── group/
 ├── organization/
 ├── ticket/
+│   ├── count/
 │   ├── create/
 │   │   ├── with_attachment/
 │   │   └── without_attachment/
