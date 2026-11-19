@@ -487,6 +487,15 @@ export URL="https://zammad.example.com"
 export TOKEN="your-api-token"
 ```
 
+Or copy the template, fill in your values and load it (`.env` is git-ignored):
+
+```bash
+cp .env.example .env
+source .env
+```
+
+`examples/ticket/search` also reads `FROM` and `TO` for its date range.
+
 Example:
 
 ```bash
