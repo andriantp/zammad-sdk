@@ -232,6 +232,21 @@ for _, tag := range result.Tags {
 }
 ```
 
+Retrieve the tags of a single ticket.
+
+```go
+tags, err := client.Tickets.GetTicketTags(ctx, 123)
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Println(tags) // [bug urgent]
+```
+
+Zammad does not include tags in ticket responses. `GetTicket` and
+`GetTicketByNumber` populate `Ticket.Tags` (comma-separated) with one extra
+request; search results leave it empty to avoid one request per ticket.
+
 ### Articles
 
 #### Get Articles

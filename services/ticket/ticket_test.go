@@ -120,6 +120,17 @@ func TestService_CreateTicket(t *testing.T) {
 
 func TestService_GetTicket(t *testing.T) {
 	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/tags" {
+			if r.URL.Query().Get("object") != "Ticket" || r.URL.Query().Get("o_id") != "123" {
+				t.Errorf("unexpected tags query %s", r.URL.RawQuery)
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"tags": ["sdk-zammad", "urgent"]}`))
+
+			return
+		}
+
 		if r.Method != http.MethodGet {
 			t.Errorf("expected method %s, got %s", http.MethodGet, r.Method)
 		}
@@ -149,7 +160,6 @@ func TestService_GetTicket(t *testing.T) {
 			"updated_by": "agent@example.com",
 			"priority_id": 2,
 			"state_id": 1,
-			"tags": "sdk-zammad",
 			"article": {
 				"id": 456,
 				"ticket_id": 123,
@@ -164,6 +174,10 @@ func TestService_GetTicket(t *testing.T) {
 	result, err := service.GetTicket(context.Background(), 123)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Tags != "sdk-zammad,urgent" {
+		t.Errorf("expected tags from tags endpoint, got %q", result.Tags)
 	}
 
 	if result.Group != "Support" || result.State != "new" || result.Priority != "2 normal" ||
@@ -210,6 +224,17 @@ func TestService_GetTicket_InvalidID(t *testing.T) {
 
 func TestService_GetTicketByNumber(t *testing.T) {
 	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/tags" {
+			if r.URL.Query().Get("object") != "Ticket" || r.URL.Query().Get("o_id") != "123" {
+				t.Errorf("unexpected tags query %s", r.URL.RawQuery)
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"tags": ["sdk-zammad", "urgent"]}`))
+
+			return
+		}
+
 		if r.Method != http.MethodGet {
 			t.Errorf("expected method %s, got %s", http.MethodGet, r.Method)
 		}
@@ -243,6 +268,10 @@ func TestService_GetTicketByNumber(t *testing.T) {
 	result, err := service.GetTicketByNumber(context.Background(), "1000123")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Tags != "sdk-zammad,urgent" {
+		t.Errorf("expected tags from tags endpoint, got %q", result.Tags)
 	}
 
 	if result.ID != 123 {
@@ -296,6 +325,13 @@ func TestService_GetTicketByNumber_WhitespaceNumber(t *testing.T) {
 
 func TestService_GetTicketByNumber_ExactMatch(t *testing.T) {
 	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/tags" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"tags": []}`))
+
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 

@@ -61,7 +61,7 @@ func (s *Service) GetTicket(ctx context.Context, id int) (*models.Ticket, error)
 		return nil, err
 	}
 
-	return &ticket, nil
+	return s.withTags(ctx, &ticket)
 }
 
 func (s *Service) GetTicketByNumber(ctx context.Context, number string) (*models.Ticket, error) {
@@ -90,7 +90,7 @@ func (s *Service) GetTicketByNumber(ctx context.Context, number string) (*models
 
 	for _, ticket := range tickets {
 		if ticket.Number == number {
-			return &ticket, nil
+			return s.withTags(ctx, &ticket)
 		}
 	}
 

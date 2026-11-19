@@ -36,23 +36,26 @@ type (
 	// Priority, Owner, Organization, CreatedBy, UpdatedBy) are only populated
 	// by endpoints requested with expand=true, which the SDK's read methods do.
 	Ticket struct {
-		ID                    int       `json:"id"`
-		Title                 string    `json:"title"`
-		Group                 string    `json:"group"`
-		Priority              string    `json:"priority"`
-		Owner                 string    `json:"owner"`
-		Organization          string    `json:"organization"`
-		CreatedBy             string    `json:"created_by"`
-		UpdatedBy             string    `json:"updated_by"`
-		OwnerID               int       `json:"owner_id"`
-		GroupID               int       `json:"group_id"`
-		PriorityID            int       `json:"priority_id"`
-		StateID               int       `json:"state_id"`
-		State                 string    `json:"state"`
-		OrganizationID        int       `json:"organization_id"`
-		Number                string    `json:"number"`
-		Customer              string    `json:"customer"`
-		CustomerID            int       `json:"customer_id"`
+		ID             int    `json:"id"`
+		Title          string `json:"title"`
+		Group          string `json:"group"`
+		Priority       string `json:"priority"`
+		Owner          string `json:"owner"`
+		Organization   string `json:"organization"`
+		CreatedBy      string `json:"created_by"`
+		UpdatedBy      string `json:"updated_by"`
+		OwnerID        int    `json:"owner_id"`
+		GroupID        int    `json:"group_id"`
+		PriorityID     int    `json:"priority_id"`
+		StateID        int    `json:"state_id"`
+		State          string `json:"state"`
+		OrganizationID int    `json:"organization_id"`
+		Number         string `json:"number"`
+		Customer       string `json:"customer"`
+		CustomerID     int    `json:"customer_id"`
+		// Tags is a comma-separated list. Zammad omits tags from ticket
+		// responses; GetTicket and GetTicketByNumber fill it from the tags
+		// endpoint, while search results leave it empty (see GetTicketTags).
 		Tags                  string    `json:"tags"`
 		LastContactAt         time.Time `json:"last_contact_at"`
 		LastContactAgentAt    time.Time `json:"last_contact_agent_at"`
