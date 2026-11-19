@@ -3,7 +3,6 @@ package transport
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 )
@@ -37,40 +36,38 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
+// Do sends a request with an optional JSON body and decodes a JSON response
+// into result (which may be nil).
 func (c *Client) Do(ctx context.Context, method, path string, body, result any) error {
-	req, err := c.newRequest(ctx, method, path, body)
+	resp, err := c.execute(ctx, method, path, body)
 	if err != nil {
 		return err
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("execute HTTP request: %w", err)
 	}
 
 	return decodeResponse(resp, result)
 }
 
+// DoRaw sends a request without a body and returns the raw response body,
+// for binary content such as attachments.
 func (c *Client) DoRaw(ctx context.Context, method, path string) ([]byte, error) {
-	req, err := c.newRequest(ctx, method, path, nil)
+	resp, err := c.execute(ctx, method, path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return readResponse(resp)
+}
+
+func (c *Client) execute(ctx context.Context, method, path string, body any) (*http.Response, error) {
+	req, err := c.newRequest(ctx, method, path, body)
 	if err != nil {
 		return nil, err
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read response body: %w", err)
+		return nil, fmt.Errorf("execute HTTP request: %w", err)
 	}
 
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, decodeAPIError(resp.StatusCode, data)
-	}
-
-	return data, nil
+	return resp, nil
 }

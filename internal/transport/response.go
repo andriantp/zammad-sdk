@@ -7,17 +7,30 @@ import (
 	"net/http"
 )
 
-func decodeResponse(resp *http.Response, result any) error {
+// readResponse reads and closes the response body. A non-2xx status is
+// returned as an *APIError.
+func readResponse(resp *http.Response) ([]byte, error) {
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("read response body: %w", err)
+		return nil, fmt.Errorf("read response body: %w", err)
 	}
 
 	if resp.StatusCode < http.StatusOK ||
 		resp.StatusCode >= http.StatusMultipleChoices {
-		return decodeAPIError(resp.StatusCode, body)
+		return nil, decodeAPIError(resp.StatusCode, body)
+	}
+
+	return body, nil
+}
+
+// decodeResponse reads the response like readResponse and decodes a JSON
+// body into result. An empty body or nil result is not an error.
+func decodeResponse(resp *http.Response, result any) error {
+	body, err := readResponse(resp)
+	if err != nil {
+		return err
 	}
 
 	if len(body) == 0 || result == nil {
