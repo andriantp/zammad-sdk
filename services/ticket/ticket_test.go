@@ -21,6 +21,10 @@ func TestService_CreateTicket(t *testing.T) {
 			t.Errorf("expected path /api/v1/tickets, got %s", r.URL.Path)
 		}
 
+		if got := r.URL.Query().Get("expand"); got != "true" {
+			t.Errorf("expected expand=true, got %q", got)
+		}
+
 		var input models.TicketInput
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			t.Fatalf("failed to decode request body: %v", err)
@@ -67,7 +71,7 @@ func TestService_CreateTicket(t *testing.T) {
 			"title": "Cannot access dashboard",
 			"customer": "customer@example.com",
 			"group": "Support",
-			"tags": "bug,urgent",
+			"state": "new",
 			"article": {
 				"id": 456,
 				"ticket_id": 123,
@@ -115,6 +119,48 @@ func TestService_CreateTicket(t *testing.T) {
 
 	if result.Article.Subject != input.Article.Subject {
 		t.Errorf("expected article subject %s, got %s", input.Article.Subject, result.Article.Subject)
+	}
+
+	if result.Group != "Support" || result.State != "new" {
+		t.Errorf("expected expanded name fields, got group=%q state=%q", result.Group, result.State)
+	}
+
+	if result.Tags != "bug,urgent" {
+		t.Errorf("expected tags from input, got %q", result.Tags)
+	}
+}
+
+// Tags come from the input, normalized, without a second request.
+func TestService_CreateTicket_TagsFromInput(t *testing.T) {
+	requests := 0
+
+	service := newTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id": 59, "number": "89059"}`))
+	}))
+
+	for _, tc := range []struct{ input, want string }{
+		{" bug , ,urgent ", "bug,urgent"},
+		{"", ""},
+		{" , ", ""},
+	} {
+		requests = 0
+
+		result, err := service.CreateTicket(context.Background(), models.TicketInput{Title: "x", Tags: tc.input})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if result.Tags != tc.want {
+			t.Errorf("tags %q: expected %q, got %q", tc.input, tc.want, result.Tags)
+		}
+
+		if requests != 1 {
+			t.Errorf("tags %q: expected 1 request, got %d", tc.input, requests)
+		}
 	}
 }
 

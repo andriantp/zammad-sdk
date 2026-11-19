@@ -26,13 +26,20 @@ func New(transport Transport) *Service {
 	}
 }
 
+// CreateTicket creates a ticket with its first article.
+//
+// The ticket is requested with expand=true so name fields (Group, State,
+// Customer, ...) are populated. Zammad omits tags from the response, so Tags
+// is filled from input.Tags rather than with a second request: a failure
+// after the ticket was created would otherwise invite a retry that creates
+// a duplicate.
 func (s *Service) CreateTicket(ctx context.Context, input models.TicketInput) (*models.Ticket, error) {
 	var ticket models.Ticket
 
 	err := s.transport.Do(
 		ctx,
 		http.MethodPost,
-		"/tickets",
+		"/tickets?expand=true",
 		input,
 		&ticket,
 	)
@@ -40,7 +47,24 @@ func (s *Service) CreateTicket(ctx context.Context, input models.TicketInput) (*
 		return nil, err
 	}
 
+	if ticket.Tags == "" {
+		ticket.Tags = normalizeTags(input.Tags)
+	}
+
 	return &ticket, nil
+}
+
+// normalizeTags trims each comma-separated tag and drops empty ones.
+func normalizeTags(tags string) string {
+	var out []string
+
+	for _, tag := range strings.Split(tags, ",") {
+		if tag = strings.TrimSpace(tag); tag != "" {
+			out = append(out, tag)
+		}
+	}
+
+	return strings.Join(out, ",")
 }
 
 func (s *Service) GetTicket(ctx context.Context, id int) (*models.Ticket, error) {
