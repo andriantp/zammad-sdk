@@ -128,6 +128,10 @@ func TestService_GetTicket(t *testing.T) {
 			t.Errorf("expected path /api/v1/tickets/123, got %s", r.URL.Path)
 		}
 
+		if got := r.URL.Query().Get("expand"); got != "true" {
+			t.Errorf("expected expand=true, got %q", got)
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -137,6 +141,12 @@ func TestService_GetTicket(t *testing.T) {
 			"title": "Cannot access dashboard",
 			"customer": "customer@example.com",
 			"group": "Support",
+			"state": "new",
+			"priority": "2 normal",
+			"owner": "-",
+			"organization": "Acme",
+			"created_by": "agent@example.com",
+			"updated_by": "agent@example.com",
 			"priority_id": 2,
 			"state_id": 1,
 			"tags": "sdk-zammad",
@@ -154,6 +164,12 @@ func TestService_GetTicket(t *testing.T) {
 	result, err := service.GetTicket(context.Background(), 123)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Group != "Support" || result.State != "new" || result.Priority != "2 normal" ||
+		result.Owner != "-" || result.Organization != "Acme" ||
+		result.CreatedBy != "agent@example.com" || result.UpdatedBy != "agent@example.com" {
+		t.Errorf("expanded name fields not decoded: %+v", result)
 	}
 
 	if result.ID != 123 {
@@ -204,6 +220,10 @@ func TestService_GetTicketByNumber(t *testing.T) {
 
 		if query := r.URL.Query().Get("query"); query != "number:1000123" {
 			t.Errorf("expected query number:1000123, got %s", query)
+		}
+
+		if got := r.URL.Query().Get("expand"); got != "true" {
+			t.Errorf("expected expand=true, got %q", got)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -590,6 +610,10 @@ func TestService_SearchTicketsPage(t *testing.T) {
 
 		if q.Get("query") != "title:login" || q.Get("page") != "2" || q.Get("per_page") != "10" {
 			t.Errorf("unexpected query %s", r.URL.RawQuery)
+		}
+
+		if got := r.URL.Query().Get("expand"); got != "true" {
+			t.Errorf("expected expand=true, got %q", got)
 		}
 
 		w.Header().Set("Content-Type", "application/json")

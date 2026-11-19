@@ -32,10 +32,18 @@ type (
 		Article        ArticleInput `json:"article"`
 	}
 
+	// Ticket is a Zammad ticket. Name fields (Group, Customer, State,
+	// Priority, Owner, Organization, CreatedBy, UpdatedBy) are only populated
+	// by endpoints requested with expand=true, which the SDK's read methods do.
 	Ticket struct {
 		ID                    int       `json:"id"`
 		Title                 string    `json:"title"`
 		Group                 string    `json:"group"`
+		Priority              string    `json:"priority"`
+		Owner                 string    `json:"owner"`
+		Organization          string    `json:"organization"`
+		CreatedBy             string    `json:"created_by"`
+		UpdatedBy             string    `json:"updated_by"`
 		OwnerID               int       `json:"owner_id"`
 		GroupID               int       `json:"group_id"`
 		PriorityID            int       `json:"priority_id"`

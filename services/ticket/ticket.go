@@ -53,7 +53,7 @@ func (s *Service) GetTicket(ctx context.Context, id int) (*models.Ticket, error)
 	err := s.transport.Do(
 		ctx,
 		http.MethodGet,
-		"/tickets/"+strconv.Itoa(id),
+		"/tickets/"+strconv.Itoa(id)+"?expand=true",
 		nil,
 		&ticket,
 	)
@@ -70,14 +70,17 @@ func (s *Service) GetTicketByNumber(ctx context.Context, number string) (*models
 		return nil, fmt.Errorf("zammad: ticket number is required")
 	}
 
-	query := url.QueryEscape("number:" + number)
+	values := url.Values{
+		"query":  {"number:" + number},
+		"expand": {"true"},
+	}
 
 	var tickets []models.Ticket
 
 	err := s.transport.Do(
 		ctx,
 		http.MethodGet,
-		"/tickets/search?query="+query,
+		"/tickets/search?"+values.Encode(),
 		nil,
 		&tickets,
 	)
@@ -145,7 +148,10 @@ func (s *Service) SearchTicketsPage(ctx context.Context, query string, opts mode
 }
 
 func (s *Service) searchPage(ctx context.Context, query string, opts models.ListOptions) ([]models.Ticket, error) {
-	path := pagination.Path("/tickets/search", opts, url.Values{"query": {query}})
+	path := pagination.Path("/tickets/search", opts, url.Values{
+		"query":  {query},
+		"expand": {"true"},
+	})
 
 	var tickets []models.Ticket
 	if err := s.transport.Do(ctx, http.MethodGet, path, nil, &tickets); err != nil {
